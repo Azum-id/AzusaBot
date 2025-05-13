@@ -1,0 +1,40 @@
+{
+    "name": "whatsapp-bot",
+    "version": "1.0.0",
+    "description": "WhatsApp Bot with Baileys",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "keywords": [
+        "whatsapp",
+        "bot",
+        "baileys",
+        "esm"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "@hapi/boom": "^10.0.1",
+        "@whiskeysockets/baileys": "^6.5.0",
+        "btch-downloader": "^4.0.8",
+        "chalk": "^5.3.0",
+        "dotenv": "^16.5.0",
+        "figlet": "^1.6.0",
+        "instagram-id-to-url-segment": "^0.0.0",
+        "instagram-private-api": "^1.46.1",
+        "jimp": "^0.16.13",
+        "libphonenumber-js": "^1.12.7",
+        "moment-timezone": "^0.5.43",
+        "node-cache": "^5.1.2",
+        "openai": "^4.0.0",
+        "pino": "^8.15.0",
+        "sharp": "^0.32.6",
+        "tiktermux": "^1.0.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}
