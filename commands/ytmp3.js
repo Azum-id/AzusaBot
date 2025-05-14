@@ -1,5 +1,5 @@
 /**
- * YouTube downloader command - Download YouTube videos with enhanced error handling
+ * YouTube MP3 downloader command - Download audio from YouTube videos
  */
 import axios from "axios";
 
@@ -123,58 +123,42 @@ async function universalFetch(
 }
 
 /**
- * Generates caption for a YouTube video
+ * Generates caption for a YouTube audio
  */
-function generateYoutubeCaption(data) {
+function generateYoutubeAudioCaption(data) {
     // Safely extract properties with fallbacks
     const {
         title = "Unknown Title",
         uploader = "Unknown Channel",
-        view_count = 0,
-        like_count = 0,
         duration = 0,
-        upload_date = "Unknown Date",
-        description = ""
+        upload_date = "Unknown Date"
     } = data;
 
     // Format duration if not already formatted
     const duration_formatted =
         data.duration_formatted || formatDuration(duration);
 
-    let caption = `*🎬 YouTube Downloader*\n\n`;
+    let caption = `*🎵 YouTube MP3 Downloader*\n\n`;
     caption += `*Title:* ${title}\n`;
     caption += `*Channel:* ${uploader}\n`;
-    caption += `*Views:* ${formatNumber(view_count)}\n`;
-
-    // Only add likes if available
-    if (like_count !== null) {
-        caption += `*Likes:* ${formatNumber(like_count)}\n`;
-    }
-
     caption += `*Duration:* ${duration_formatted}\n`;
     caption += `*Uploaded:* ${upload_date}\n\n`;
-
-    if (description) {
-        caption += `*Description:* ${truncate(description, 300)}\n\n`;
-    }
-
     caption += `> Downloaded by: _Azusa - Bot_\n`;
 
     return caption;
 }
 
 /**
- * Performs the API request to download a YouTube video
+ * Performs the API request to download a YouTube audio
  * @returns {Promise<Object>} The API response
  */
-async function fetchYoutubeVideo(url, quality = "medium") {
+async function fetchYoutubeAudio(url) {
     try {
-        const apiUrl = `https://azusa-backend.my.id/api/get?url=${encodeURIComponent(
+        const apiUrl = `https://azusa-backend.my.id/api/ytmp3?url=${encodeURIComponent(
             url
-        )}&quality=${quality}`;
+        )}`;
 
         const response = await axios.get(apiUrl, {
-            timeout: 30000, // 30 seconds timeout
             headers: {
                 "User-Agent": "Azusa-Bot/1.0"
             }
@@ -204,13 +188,13 @@ async function fetchYoutubeVideo(url, quality = "medium") {
 }
 
 /**
- * YouTube command definition
+ * YouTube MP3 command definition
  */
-const youtubeCommand = {
-    name: "youtube",
-    aliases: ["yt", "ytdl"],
-    description: "Download YouTube video (best quality)",
-    usage: "/youtube <link>",
+const youtubeMP3Command = {
+    name: "ytmp3",
+    aliases: ["mp3", "yta"],
+    description: "Download YouTube audio (MP3)",
+    usage: "/ytmp3 <link>",
     cooldown: 30, // 30 seconds cooldown between uses
 
     async execute(sock, msg, args, { AzusaLog, from, pushName }) {
@@ -221,10 +205,10 @@ const youtubeCommand = {
         try {
             // Validate input
             const url = args[0];
-const reso = args[1] || "medium";
+
             if (!url) {
                 return await sock.sendMessage(from, {
-                    text: `❌ Please include a YouTube link, ${pushName}.\n\nExample: /yt https://youtu.be/2PuFyjAs7JA`
+                    text: `❌ Please include a YouTube link, ${pushName}.\n\nExample: /ytmp3 https://youtu.be/jOwsX8AAFx8`
                 });
             }
 
@@ -241,13 +225,13 @@ const reso = args[1] || "medium";
             statusMessage = await sock.sendMessage(
                 from,
                 {
-                    text: `⏳ Processing YouTube download request...\nPlease wait, this may take a moment.`
+                    text: `⏳ Processing YouTube MP3 download request...\nPlease wait, this may take a moment.`
                 },
                 { quoted: msg }
             );
 
-            // Fetch video data
-            const apiData = await fetchYoutubeVideo(url, reso);
+            // Fetch audio data
+            const apiData = await fetchYoutubeAudio(url);
 
             // Validate API response
             if (
@@ -258,13 +242,13 @@ const reso = args[1] || "medium";
                 throw new Error("API did not provide a valid download URL");
             }
 
-            // Cancel if video duration is more than 30 minutes (1800 seconds)
-            if (apiData.video.duration > 1800) {
+            // Cancel if audio duration is more than 30 minutes (1800 seconds)
+            if (apiData.audio.duration > 1800) {
                 if (statusMessage && statusMessage.key) {
                     return await sock.sendMessage(
                         from,
                         {
-                            text: `NGOTAK KONTOL VIDEO NYA DURASI *${apiData.video.duration_formatted}* GUOBLOK!!!! MAXIMAL 30 MENIT PUQIMAK`,
+                            text: `❌ Audio too long! Duration: *${apiData.audio.duration_formatted}*. Maximum allowed: 30 minutes.`,
                             edit: statusMessage.key
                         },
                         { quoted: msg }
@@ -272,30 +256,38 @@ const reso = args[1] || "medium";
                 }
             }
 
-            // Generate caption based on video data
-            const caption = generateYoutubeCaption(apiData.video);
+            // Generate caption based on audio data
+            const caption = generateYoutubeAudioCaption(apiData.audio);
 
             // Update status message if needed
             if (statusMessage && statusMessage.key) {
                 await sock.sendMessage(from, {
-                    text: `✅ Video found! Sending video... (${apiData.file.size_mb} MB)`,
+                    text: `✅ Audio found! Sending MP3... (${apiData.file.size_mb} MB)`,
                     edit: statusMessage.key
                 });
             }
-            const vidBuffer = await universalFetch(apiData.file.download_url, {
-                referer: "https://azusa-backend.my.id/",
-                responseType: "arraybuffer"
-            });
-            const buffer = Buffer.from(vidBuffer);
-            // Send the video
+            // Fetch the audio file
+            const audioBuffer = await universalFetch(
+                apiData.file.download_url,
+                {
+                    referer: "https://azusa-backend.my.id/",
+                    responseType: "arraybuffer"
+                }
+            );
+
+            // Convert to Buffer
+            const buffer = Buffer.from(audioBuffer);
+
+            // Send the audio
             await sock.sendMessage(from, {
-                video: buffer,
+                audio: buffer,
+                mimetype: "audio/mp4",
                 caption
             });
         } catch (err) {
             // Handle different error types
             let errorMessage =
-                "⚠️ An error occurred while downloading the video.";
+                "⚠️ An error occurred while downloading the audio.";
 
             if (err.message.includes("API error")) {
                 errorMessage = `⚠️ Server error: ${err.message}`;
@@ -307,25 +299,29 @@ const reso = args[1] || "medium";
                     "⚠️ Cannot connect to server. Please check your internet connection.";
             } else if (err.message.includes("file size")) {
                 errorMessage =
-                    "⚠️ Video size is too large to send via WhatsApp. Try a shorter video.";
+                    "⚠️ Audio size is too large to send via WhatsApp. Try a shorter video.";
             }
 
             // Send error message
-            await sock.sendMessage(from, {
-                text: `${errorMessage} Try again later.\n\nDetails: ${err.message}`,
-                edit: statusMessage
-            });
+            if (statusMessage && statusMessage.key) {
+                await sock.sendMessage(from, {
+                    text: `${errorMessage} Try again later.\n\nDetails: ${err.message}`,
+                    edit: statusMessage.key
+                });
+            } else {
+                await sock.sendMessage(from, {
+                    text: `${errorMessage} Try again later.\n\nDetails: ${err.message}`
+                });
+            }
 
             // Log error with context
-            AzusaLog.handleError(err, `Error in /youtube command`);
-        } finally {
-            // Clean up or finalize anything if needed
+            AzusaLog.handleError(err, `Error in /ytmp3 command`);
         }
     }
 };
 
 // Adding retry capability
-youtubeCommand.retry = async function (
+youtubeMP3Command.retry = async function (
     sock,
     msg,
     args,
@@ -361,5 +357,5 @@ youtubeCommand.retry = async function (
     }
 };
 
-export default youtubeCommand;
+export default youtubeMP3Command;
 
